@@ -10,7 +10,7 @@ sinonimos = {}
 for universidad in universidades:
     nombre = universidad['Nombre '].lower()
     siglas = universidad['Siglas '].lower()
-    sinonimos[nombre] = [nombre, siglas]
+    sinonimos[nombre] =  [nombre, siglas,nombre + "("+ siglas+ ")" ]
     if '(' in nombre and ')' in nombre:
         sinonimos[nombre].append(nombre[nombre.find('(')+1:nombre.find(')')])
 
