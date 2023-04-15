@@ -1,47 +1,62 @@
 import csv
 import json
+from fuzzywuzzy import fuzz
 
 # Leer el archivo de universidades
 with open('universidades.json', 'r') as f:
     universidades = json.load(f)
 
-# Crear un diccionario de sinónimos
-sinonimos = {}
-for universidad in universidades:
-    nombre = universidad['Nombre '].lower()
-    siglas = universidad['Siglas '].lower()
-    sinonimos[nombre] =  [nombre, siglas,nombre + "("+ siglas+ ")" ]
-    if '(' in nombre and ')' in nombre:
-        sinonimos[nombre].append(nombre[nombre.find('(')+1:nombre.find(')')])
+# Añadir la clave 'Sinonimos' en el diccionario de cada universidad
+for u in universidades:
+    u['Sinonimos'] = set()
 
 # Leer el archivo de instituciones educativas
 with open('instituciones_educativas.csv', 'r', encoding='utf-8') as f:
     reader = csv.DictReader(f)
     rows = [row for row in reader]
 
-# Homologar las universidades
+sinonimos_diccionario = {}
 for row in rows:
     universidad = row['value'].lower()
     homologada = None
     for u in universidades:
-        if u['Nombre '].lower() == universidad or u['Siglas '].lower() == universidad:
-            homologada = 'HOMOLOGADA'
+        nombre_uni = u['Nombre '].lower()
+        siglas_uni = u['Siglas '].lower()
+        # Comparar la cadena de texto de la universidad con el nombre y las siglas de las universidades
+        if fuzz.ratio(universidad, nombre_uni) >= 80 or fuzz.ratio(universidad, siglas_uni) >= 80:
+            homologada = u['Nombre ']
             break
     if not homologada:
-        for s, sin in sinonimos.items():
+        for s, sin in sinonimos_diccionario.items():
             if universidad in sin:
                 homologada = s
                 break
-    row['universidad_homologada'] = homologada if homologada else 'NO HOMOLOGADA'
+    if homologada:
+        row['universidad_homologada'] = "Si"
+        if homologada in sinonimos_diccionario:
+            sinonimos_diccionario[homologada].add(universidad)
+        else:
+            sinonimos_diccionario[homologada] = set([universidad]) # Aquí se añade la línea que faltaba
+    else:
+        row['universidad_homologada'] = "No"
 
-# Escribir el archivo de instituciones educativas homologadas
-with open('universidades_homologadas.csv', 'w', newline='', encoding='utf-8') as f:
+with open('instituciones_educativas_homologadas.csv', 'w', newline='', encoding='utf-8') as f:
     fieldnames = ['candidateId', 'value', 'universidad_homologada']
     writer = csv.DictWriter(f, fieldnames=fieldnames)
     writer.writeheader()
-    writer.writerows(rows)
+    for row in rows:
+        writer.writerow({'candidateId': row['candidateId'], 'value': row['value'], 'universidad_homologada': row['universidad_homologada']})
 
-# Escribir el archivo de sinónimos
-with open('sinonimo_universidades.json', 'w', encoding='utf-8') as f:
-    json.dump([{'nombre_universidad': k, 'sinonimos': v} for k, v in sinonimos.items()], f, ensure_ascii=False, indent=2)
 
+# Crear el diccionario de sinónimos con el formato solicitado
+# Crear la lista de diccionarios con el formato solicitado
+sinonimos_universidades = []
+for homologada in sinonimos_diccionario:
+    sinonimos_universidades.append({
+        "nombre": homologada,
+        "sinonimos": list(sinonimos_diccionario[homologada])
+    })
+
+# Escribir el archivo de sinónimos de universidades
+with open('sinonimos_universidades.json', 'w', encoding='utf-8') as f:
+    json.dump(sinonimos_universidades, f, ensure_ascii=False)
