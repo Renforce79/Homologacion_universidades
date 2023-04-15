@@ -47,9 +47,7 @@ with open('instituciones_educativas_homologadas.csv', 'w', newline='', encoding=
     for row in rows:
         writer.writerow({'candidateId': row['candidateId'], 'value': row['value'], 'universidad_homologada': row['universidad_homologada']})
 
-
 # Crear el diccionario de sinónimos con el formato solicitado
-# Crear la lista de diccionarios con el formato solicitado
 sinonimos_universidades = []
 for homologada in sinonimos_diccionario:
     sinonimos_universidades.append({
